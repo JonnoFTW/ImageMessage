@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.imagemessage"
+    package="com.jonathanmackenzie.imagemessage"
     android:versionCode="1"
     android:versionName="1.0" >
 
@@ -8,9 +8,11 @@
         android:minSdkVersion="16"
         android:targetSdkVersion="18" />
 
-     <uses-permission android:name="android.permission.INTERNET" />
-     <uses-permission android:name="android.permission.CAMERA"/>
-     
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -24,6 +26,18 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="com.jonathanmackenzie.imagemessage.DecodeActivity"
+            android:label="@string/title_activity_decode"
+            android:parentActivityName="com.jonathanmackenzie.imagemessage.MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.jonathanmackenzie.imagemessage.MainActivity" />
+        </activity>
+        <activity
+            android:name="com.jonathanmackenzie.imagemessage.EncodeActivity"
+            android:label="@string/title_activity_encode" >
         </activity>
     </application>
 

@@ -4,16 +4,36 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="fill_parent"
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Send Image" />
+        android:text="Encode and send an image using..."
+        android:textSize="20sp" />
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/buttonEncodeExisting"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
+        android:onClick="fetchImageGallery"
+        android:text="Existing Image" />
+
+    <Button
+        android:id="@+id/buttonEncodeTakeNew"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:onClick="fetchImageCamera"
+        android:text="New Image" />
+<View
+    android:layout_width="fill_parent"
+android:layout_height="2dip"
+android:background="#FF000000" /> 
+    />
+    <Button
+        android:id="@+id/buttonDecode"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:onClick="fetchImageGallery"
         android:text="Decode Image" />
 
 </LinearLayout>

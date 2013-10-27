@@ -1,17 +1,28 @@
 package com.jonathanmackenzie.imagemessage;
 
-import com.example.imagemessage.R;
+import com.jonathanmackenzie.imagemessage.R;
 
 import android.os.Bundle;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
+import android.util.Log;
 import android.view.Menu;
+import android.view.View;
 
 public class MainActivity extends Activity {
+
+    private static final int CAMERA_REQUEST = 200;
+    private static final int GALLERY_PICK_ENCODE = 201;
+    private static final int GALLERY_PICK_DECODE = 202;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
     }
 
     @Override
@@ -21,4 +32,57 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    public void fetchImageGallery(View v) {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType("image/*");
+        Intent chooser = Intent.createChooser(i, "Choose a Picture");
+        if (v == findViewById(R.id.buttonEncodeExisting))
+            startActivityForResult(chooser, GALLERY_PICK_ENCODE);
+        else
+            startActivityForResult(chooser, GALLERY_PICK_DECODE);
+    }
+
+    public void fetchImageCamera(View v) {
+        Intent cameraIntent = new Intent(
+                android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+        startActivityForResult(cameraIntent, CAMERA_REQUEST);
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.i("MainActivity", "Activity result returned " + requestCode + " "
+                + resultCode);
+        if (resultCode == RESULT_OK && data != null) {
+
+            if (requestCode == CAMERA_REQUEST
+                    || requestCode == GALLERY_PICK_ENCODE) {
+                // Start the encode activity with the image
+                Intent intent = new Intent(this, EncodeActivity.class);
+                intent.setData(data.getData());
+                startActivity(intent);
+            } else if (requestCode == GALLERY_PICK_DECODE) {
+                // Start the decode activity
+                Intent intent = new Intent(this, DecodeActivity.class);
+                intent.setData(data.getData());
+                startActivity(intent);
+            }
+
+        } else if (resultCode == RESULT_CANCELED || data == null) {
+            AlertDialog ad = new AlertDialog.Builder(this).create();
+            ad.setMessage("You have cancelled selecting an image");
+            ad.setTitle("Operation Cancelled");
+            ad.setButton("Ok", new OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // TODO Auto-generated method stub
+                    dialog.cancel();
+                }
+            });
+            ad.show();
+        }
+    }
+
+    public void openDecodeActivity() {
+        startActivity(new Intent(this, DecodeActivity.class));
+    }
 }
