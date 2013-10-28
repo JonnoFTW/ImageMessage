@@ -5,6 +5,7 @@ import com.jonathanmackenzie.imagemessage.R;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
@@ -22,7 +23,52 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        // Taken from the tutorial at https://developer.android.com/training/sharing/receive.html
+        final Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+        final MainActivity ma = this;
+        if(Intent.ACTION_SEND.equals(action) && type != null) {
+            if(type.startsWith("image/")) {
+                // Prompt the user to pick which method to use
+                Builder builder = new AlertDialog.Builder(this);
+                builder.setMessage("What do you want to do with the image?");
+                builder.setTitle("Select Operation");
+                builder.setPositiveButton("Encode", new OnClickListener() {
+                    
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        Intent incomingIntent = new Intent(ma, EncodeActivity.class);
+                        incomingIntent.setData(intent.getData());
+                        startActivity(incomingIntent);
+                    }
+                });
+                builder.setNegativeButton("Decode", new OnClickListener() {
+                    
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        Intent incomingIntent = new Intent(ma, DecodeActivity.class);
+                        incomingIntent.setData(intent.getData());
+                        startActivity(incomingIntent);
+                    }
+                });
+                builder.setNeutralButton("Cancel", new OnClickListener() {
+                    
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Exit or something
+                        
+                    }
+                });
+                
+                AlertDialog ad = builder.create();
+                ad.show();
+                
+              
+            }
+        }
     }
 
     @Override
@@ -38,7 +84,7 @@ public class MainActivity extends Activity {
         Intent chooser = Intent.createChooser(i, "Choose a Picture");
         if (v == findViewById(R.id.buttonEncodeExisting))
             startActivityForResult(chooser, GALLERY_PICK_ENCODE);
-        else
+        else if (v == findViewById(R.id.buttonDecode))
             startActivityForResult(chooser, GALLERY_PICK_DECODE);
     }
 

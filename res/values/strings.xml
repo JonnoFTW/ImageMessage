@@ -6,5 +6,6 @@
     <string name="hello_world">Hello world!</string>
     <string name="title_activity_decode">DecodeActivity</string>
     <string name="title_activity_encode">EncodeActivity</string>
+    <string name="title_activity_final">FinalActivity</string>
 
 </resources>

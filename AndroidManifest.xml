@@ -9,7 +9,9 @@
         android:targetSdkVersion="18" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature android:name="android.hardware.camera" />
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -26,6 +28,13 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="image/*" />
+            </intent-filter>
         </activity>
         <activity
             android:name="com.jonathanmackenzie.imagemessage.DecodeActivity"
@@ -38,6 +47,14 @@
         <activity
             android:name="com.jonathanmackenzie.imagemessage.EncodeActivity"
             android:label="@string/title_activity_encode" >
+        </activity>
+        <activity
+            android:name="com.jonathanmackenzie.imagemessage.FinalActivity"
+            android:label="@string/title_activity_final"
+            android:parentActivityName="com.jonathanmackenzie.imagemessage.MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.jonathanmackenzie.imagemessage.MainActivity" />
         </activity>
     </application>
 
