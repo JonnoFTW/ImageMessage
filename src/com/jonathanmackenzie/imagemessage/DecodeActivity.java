@@ -1,15 +1,17 @@
 package com.jonathanmackenzie.imagemessage;
 
-import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore.Images;
+import android.provider.MediaStore;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Base64;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
@@ -28,17 +30,40 @@ public class DecodeActivity extends Activity {
         Intent intent = getIntent();
         ImageView iv = (ImageView) findViewById(R.id.imageViewInput);
         iv.setImageURI(intent.getData());
-        String content = decodeImage(intent.getData());
+        String content = null;
+        if (intent.hasExtra("bitmap")) {
+
+            try {
+                FileInputStream fis;
+                fis = openFileInput(intent.getStringExtra("bitmap"));
+                content = decodeImage(BitmapFactory.decodeStream(fis));
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                Log.e("DecodeActivity", e.getMessage());
+            }
+
+        } else {
+            try {
+                content = decodeImage(MediaStore.Images.Media.getBitmap(
+                        this.getContentResolver(), intent.getData()));
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                Log.e("DecodeActivity", e.getMessage());
+            }
+        }
         LinearLayout layout = (LinearLayout) findViewById(R.id.decodeOutput);
         if (content != null) {
-            // Detect if the string is either 
+            // Detect if the string is either
             boolean image = content.startsWith("data:image/");
             if (image) {
                 // Put the hidden image below
                 ImageView ivout = new ImageView(this);
                 byte[] decodedString = Base64.decode(content, Base64.DEFAULT);
-                Bitmap bm = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                iv.setImageBitmap(bm);
+                iv.setImageBitmap(BitmapFactory.decodeByteArray(decodedString,
+                        0, decodedString.length));
                 layout.addView(ivout);
             } else {
                 // Put the text message in
@@ -88,20 +113,19 @@ public class DecodeActivity extends Activity {
     }
 
     /**
-     * Take the image and return a string
-     * Taken from http://web.mit.edu/~georgiou/www/steganography/
+     * Take the image and return a string Taken from
+     * http://web.mit.edu/~georgiou/www/steganography/
+     * 
      * @return
      */
-    private static String decodeImage(Uri image) {
+    private static String decodeImage(Bitmap bm) {
         // return null if it doesn't start with !@#
-        Bitmap bm = BitmapFactory.decodeFile(image.getPath());
+        Log.i("DecodeActivity", "Decoding: " + bm);
         StringBuffer sb = new StringBuffer();
-        int[] pixels = new int[bm.getHeight()*bm.getWidth()];
-        bm.getPixels(pixels,0, 1, 0, 0, bm.getWidth(), bm.getHeight());
-        for (int i = 0; i < bm.getWidth()*bm.getHeight()*4;) {
+        int[] pixels = new int[bm.getHeight() * bm.getWidth()];
+        bm.getPixels(pixels, 0, bm.getWidth(), 0, 0, bm.getWidth(), bm.getHeight());
+        for (int i = 0; i < bm.getWidth() * bm.getHeight() * 4;) {
             int charCode = 0;
-            int x = 0;
-            int y = 0;
             charCode |= pixels[i] & 3;
             i++;
             if ((i & 3) == 3) {
@@ -125,9 +149,12 @@ public class DecodeActivity extends Activity {
             if (charCode == 0) {
                 break;
             }
-            sb.append((char)charCode);
+            if(charCode == 0) {
+                break;
+            }
+            sb.append((char) charCode);
         }
-        if (sb.substring(0,3) != "@!$") {
+        if (sb.substring(0, 3) != "@!$") {
             return null;
         }
         return sb.substring(3);

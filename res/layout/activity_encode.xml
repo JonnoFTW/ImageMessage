@@ -1,5 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/encodeRoot"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical"
@@ -54,6 +55,14 @@
                 android:layout_height="34dp"
                 android:onClick="fetchImageCamera"
                 android:text="Or embed photo"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/buttonTest"
+                android:layout_width="fill_parent"
+                android:layout_height="34dp"
+                android:onClick="testDecode"
+                android:text="Test Decode"
                 android:textSize="10sp" />
 
             <ImageView

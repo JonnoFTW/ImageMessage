@@ -1,22 +1,27 @@
 package com.jonathanmackenzie.imagemessage;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.text.Editable;
-import android.text.InputFilter;
-import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
+import android.view.View.OnFocusChangeListener;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.util.Base64;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
 import android.util.Log;
 
 public class EncodeActivity extends Activity {
@@ -33,7 +38,16 @@ public class EncodeActivity extends Activity {
         Intent intent = getIntent();
         // Get the image uri out of the intent and stick it into the imageview
         Uri img = intent.getData();
-        containerBitmap = BitmapFactory.decodeFile(img.getPath());
+        try {
+            containerBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(),img);
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        Log.i("EncodeActivity", "Container: "+containerBitmap);
         iv = (ImageView) findViewById(R.id.imageView);
         iv.setImageURI(img);
         
@@ -41,29 +55,17 @@ public class EncodeActivity extends Activity {
         et.setHint("Your secret message...");
         // Calculate this properly
       //  et.setFilters(new InputFilter[] {new InputFilter.LengthFilter(iv.getHeight()*iv.getWidth()-10)});
-    /*    et.addTextChangedListener(new TextWatcher() {
+        final View rootview =  findViewById(R.id.encodeRoot);
+        rootview.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+            
             @Override
-            public void afterTextChanged(Editable s) {
-                encodeImageText(et.getText().toString());
-                
+            public void onGlobalLayout() {
+                // TODO Auto-generated method stub
+                encodeText(et.getText().toString());
             }
+        });
 
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count,
-                    int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before,
-                    int count) {
-                // Check if the message length exceeds what we can encode
-                // Prevent adding more characters
-
-            }
-        });*/
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -87,17 +89,36 @@ public class EncodeActivity extends Activity {
                 android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         startActivityForResult(cameraIntent, CAMERA_REQUEST);
     }
+    public void testDecode(View v) {
+        Intent intent = new Intent(this, DecodeActivity.class);
+        // Put the containerBitamp into storage and 
+        // keep the path in the intent
+        try {
+            String filepath = "toDecodeBitmap";
+            FileOutputStream fos = openFileOutput(filepath, Context.MODE_PRIVATE);
+            containerBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.close();
+            intent.putExtra("bitmap", filepath);
+            startActivity(intent);
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+       
+    }
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.i("EncodeActivity", "Activity result returned " + requestCode + " "
                 + resultCode);
         if (resultCode == RESULT_OK && data != null) {
-            proceed(encodeImageImage(data.getData()));
-            
+            encodeImage(data.getData());
         }
     }
     private void proceed(Bitmap container) {
         if(container == null) {
-            
+            Log.i("EncodeActivity", "Container bitmap is null");
         } else {
             Intent intent = new Intent(this, FinalActivity.class);
             intent.putExtra("BitmapImage",container);
@@ -105,14 +126,15 @@ public class EncodeActivity extends Activity {
         }
             
     }
-    private Bitmap encodeImageImage(Uri image) {
+    private Bitmap encodeImage(Uri image) {
         ImageView ive = (ImageView) findViewById(R.id.imageViewEmbed);
         ive.setImageURI(image);
-        Bitmap bitmap = BitmapFactory.decodeFile(image.getPath());
+   /*     Bitmap bitmap = BitmapFactory.decodeFile(image.getPath());
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
-        String imageData = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT); 
-        return encodeImageText(imageData);
+        String imageData = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT); */
+        return null;
+        //return encodeText(imageData);
     }
     /**
      * Take the image file f and make insert the message
@@ -122,10 +144,11 @@ public class EncodeActivity extends Activity {
      *            the message to be encoded into the string
      */
    
-    private Bitmap encodeImageText(String message) {
+    private Bitmap encodeText(String message) {
+        Log.i("EncodeActivity", "encoding message:"+message);
         Bitmap bitmap = containerBitmap;
         int[] pixels = new int[bitmap.getHeight()*bitmap.getWidth()];
-        bitmap.getPixels(pixels, 0, 1, 0, 0, bitmap.getWidth(), bitmap.getHeight());
+        bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         
         String string = new StringBuffer().append("!@#").append(message).append((char)0).toString();
         int imageidx = 0;
@@ -152,6 +175,7 @@ public class EncodeActivity extends Activity {
                 imageidx++;
             }
         }
+        iv.setImageBitmap(bitmap);
         return bitmap;
     
     }
