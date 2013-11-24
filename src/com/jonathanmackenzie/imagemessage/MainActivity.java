@@ -96,7 +96,7 @@ public class MainActivity extends Activity {
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.i("MainActivity", "Activity result returned " + requestCode + " "
-                + resultCode);
+                + resultCode+" Data="+data.getDataString());
         if (resultCode == RESULT_OK && data != null) {
 
             if (requestCode == CAMERA_REQUEST

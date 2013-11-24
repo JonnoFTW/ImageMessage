@@ -3,6 +3,8 @@ package com.jonathanmackenzie.imagemessage;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Vector;
 
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -10,6 +12,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.hardware.Camera.Size;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
@@ -29,28 +32,28 @@ public class DecodeActivity extends Activity {
         setupActionBar();
         Intent intent = getIntent();
         ImageView iv = (ImageView) findViewById(R.id.imageViewInput);
-        iv.setImageURI(intent.getData());
         String content = null;
         if (intent.hasExtra("bitmap")) {
 
             try {
                 FileInputStream fis;
                 fis = openFileInput(intent.getStringExtra("bitmap"));
-                content = decodeImage(BitmapFactory.decodeStream(fis));
+                Bitmap bm = BitmapFactory.decodeStream(fis);
+                iv.setImageBitmap(bm);
+                content = decodeImage(bm);
             } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
                 Log.e("DecodeActivity", e.getMessage());
             }
 
         } else {
             try {
-                content = decodeImage(MediaStore.Images.Media.getBitmap(
-                        this.getContentResolver(), intent.getData()));
+                Bitmap bm = MediaStore.Images.Media.getBitmap(
+                        this.getContentResolver(), intent.getData());
+                iv.setImageBitmap(bm);
+                content = decodeImage(bm);
             } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                Log.e("DecodeActivity", e.getMessage());
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 Log.e("DecodeActivity", e.getMessage());
             }
         }
@@ -67,6 +70,7 @@ public class DecodeActivity extends Activity {
                 layout.addView(ivout);
             } else {
                 // Put the text message in
+                Log.i("Decode", "using message " + content);
                 TextView tv = new TextView(this);
                 tv.setText(content);
                 layout.addView(tv);
@@ -113,51 +117,81 @@ public class DecodeActivity extends Activity {
     }
 
     /**
-     * Take the image and return a string Taken from
-     * http://web.mit.edu/~georgiou/www/steganography/
+     * Take the image and return a string. Taken from
+     * http://developeriq.in/articles
+     * /2013/feb/28/embedding-messages-in-digital-images-using-java/
      * 
      * @return
      */
     private static String decodeImage(Bitmap bm) {
         // return null if it doesn't start with !@#
-        Log.i("DecodeActivity", "Decoding: " + bm);
-        StringBuffer sb = new StringBuffer();
-        int[] pixels = new int[bm.getHeight() * bm.getWidth()];
-        bm.getPixels(pixels, 0, bm.getWidth(), 0, 0, bm.getWidth(), bm.getHeight());
-        for (int i = 0; i < bm.getWidth() * bm.getHeight() * 4;) {
-            int charCode = 0;
-            charCode |= pixels[i] & 3;
-            i++;
-            if ((i & 3) == 3) {
-                i++;
-            }
-            charCode |= (pixels[i] & 3) << 2;
-            i++;
-            if ((i & 3) == 3) {
-                i++;
-            }
-            charCode |= (pixels[i] & 3) << 4;
-            i++;
-            if ((i & 3) == 3) {
-                i++;
-            }
-            charCode |= (pixels[i] & 3) << 6;
-            i++;
-            if ((i & 3) == 3) {
-                i++;
-            }
-            if (charCode == 0) {
-                break;
-            }
-            if(charCode == 0) {
-                break;
-            }
-            sb.append((char) charCode);
+        // Extract the first 3 chars, check if they are "!@#",
+        // read until the next #, this is the length of the message
+
+        byte[] b = new byte[3];
+        for (int i = 0; i < b.length; i++) {
+            b[i] = extractByte(bm, i * 8);
         }
-        if (sb.substring(0, 3) != "@!$") {
+        String start = new String(b);
+        if (start.equals("!@#")) {
+            int len = extractInteger(bm, 24);
+            Log.i("DecodeActivity","Length: "+len);
+            byte[] bytes = new byte[len+7];
+            for (int i = 0; i < len; i++) {
+                bytes[i] = extractByte(bm, (i*8) + (24+32));
+            }
+            String out = new String(bytes);
+            Log.i("DecodeActivity", "Message=" + out);
+            return out;
+        } else {
+            Log.i("DecodeActivity", "No message found");
             return null;
         }
-        return sb.substring(3);
+    }
+
+    /**
+     * 
+     * @param bm
+     * @param start
+     * @return
+     */
+    private static int extractInteger(Bitmap bm, int start) {
+        int maxX = bm.getWidth(), maxY = bm.getHeight(), startX = start / maxY, startY = start
+                - startX * maxY, count = 0;
+        int length = 0;
+        for (int i = startX; i < maxX && count < 32; i++) {
+            for (int j = startY; j < maxY && count < 32; j++) {
+                int rgb = bm.getPixel(i, j),
+                    bit = EncodeActivity.getBitValue(rgb, 0);
+                length = EncodeActivity.setBitValue(length, count, bit);
+                count++;
+            }
+        }
+        return length;
+    }
+
+    /**
+     * 
+     * @param bm
+     * @param start
+     * @return
+     */
+    private static byte extractByte(Bitmap bm, int start) {
+        int maxX = bm.getWidth(),
+                maxY = bm.getHeight(),
+                startX = start / maxY,
+                startY = start - startX * maxY,
+                count = 0;
+        byte b = 0;
+        for (int i = startX; i < maxX && count < 8; i++) {
+            for (int j = startY; j < maxY && count < 8; j++) {
+                int rgb = bm.getPixel(i, j),
+                    bit = EncodeActivity.getBitValue(rgb, 0);
+                b = (byte) EncodeActivity.setBitValue(b, count, bit);
+                count++;
+            }
+        }
+        return b;
     }
 
 }
