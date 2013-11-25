@@ -1,30 +1,29 @@
 package com.jonathanmackenzie.imagemessage;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import android.net.Uri;
-import android.os.Bundle;
-import android.provider.MediaStore;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.view.KeyEvent;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.text.InputFilter;
+import android.util.Base64;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.view.View.OnFocusChangeListener;
-import android.view.ViewTreeObserver.OnGlobalLayoutListener;
-import android.view.inputmethod.EditorInfo;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
-import android.text.InputFilter;
-import android.util.Log;
 
 public class EncodeActivity extends Activity {
 
@@ -32,6 +31,7 @@ public class EncodeActivity extends Activity {
     private static final int GALLERY_PICK_EMBED = 203;
     private static final int CAMERA_REQUEST = 204;
     private EditText et;
+    private Location l;
     private Bitmap containerBitmap;
 
     @Override
@@ -44,13 +44,12 @@ public class EncodeActivity extends Activity {
         try {
             containerBitmap = MediaStore.Images.Media.getBitmap(
                     this.getContentResolver(), img);
-            Log.i("EncodeActivity", "Got bitmap,"+img.getPath());
-            containerBitmap = containerBitmap.copy(Bitmap.Config.ARGB_8888, true);
+            Log.i("EncodeActivity", "Got bitmap," + img.getPath());
+            containerBitmap = containerBitmap.copy(Bitmap.Config.ARGB_8888,
+                    true);
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         iv = (ImageView) findViewById(R.id.imageView);
@@ -64,6 +63,18 @@ public class EncodeActivity extends Activity {
         Log.i("EncodeActivity", "Max message length:" + maxlen);
         et.setFilters(new InputFilter[] { new InputFilter.LengthFilter(maxlen) });
 
+        LocationManager lm = (LocationManager) this
+                .getSystemService(Context.LOCATION_SERVICE);
+        Criteria c = new Criteria();
+        String provider = lm.getBestProvider(c, false);
+        l = lm.getLastKnownLocation(provider);
+        if (l != null) {
+            Log.i("EncodeActivity",
+                    String.format("Location: Long: %f Lat: %f",
+                            l.getLongitude(), l.getLatitude()));
+        } else {
+            Log.i("EncodeActivity", "No location found");
+        }
     }
 
     @Override
@@ -139,16 +150,19 @@ public class EncodeActivity extends Activity {
     private Bitmap encodeImage(Uri image) {
         ImageView ive = (ImageView) findViewById(R.id.imageViewEmbed);
         ive.setImageURI(image);
-        /*
-         * Bitmap bitmap = BitmapFactory.decodeFile(image.getPath());
-         * ByteArrayOutputStream baos = new ByteArrayOutputStream(); // Compress
-         * the smaller image so that it fits inside the container image
-         * bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos); String
-         * imageData = Base64.encodeToString(baos.toByteArray(),
-         * Base64.DEFAULT);
-         */
-        return null;
-        // return encodeText(imageData);
+
+        Bitmap bitmap = BitmapFactory.decodeFile(image.getPath());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(); // Compress
+        // the smaller image so that it fits inside the container image
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+        bitmap = Bitmap.createScaledBitmap(bitmap,
+                Math.min(containerBitmap.getWidth() / 4, bitmap.getWidth()),
+                Math.min(containerBitmap.getHeight() / 4, bitmap.getHeight()),
+                false);
+        String imageData = Base64.encodeToString(baos.toByteArray(),
+                Base64.DEFAULT);
+
+        return encodeText(imageData);
     }
 
     /**
@@ -167,7 +181,7 @@ public class EncodeActivity extends Activity {
         for (int i = startX; i < maxX && count < 8; i++) {
             for (int j = startY; j < maxY && count < 8; j++) {
                 int rgb = img.getPixel(i, j), bit = getBitValue(b, count);
-                rgb = setBitValue(rgb, 0, bit); 
+                rgb = setBitValue(rgb, 0, bit);
 
                 img.setPixel(i, j, rgb);
                 count++;
@@ -226,18 +240,26 @@ public class EncodeActivity extends Activity {
      */
 
     private Bitmap encodeText(String message) {
-        Log.i("EncodeActivity", "encoding message: ("+message.length()+") " + message);
-
+        Log.i("EncodeActivity", "encoding message: (" + message.length() + ") "
+                + message);
         // put the 3 chars at the start
         byte[] b = "!@#".getBytes();
         for (int i = 0; i < b.length; i++) {
             embedByte(containerBitmap, b[i], i * 8);
         }
-        // put the message length in
-        embedInteger(containerBitmap, message.length(), 24);
+        
         // put the real message in
+        CheckBox cb = (CheckBox) findViewById(R.id.checkBoxCoords);
+        if (cb.isChecked()) {
+            message = String.format("##%f,%f##", l.getLatitude(),
+                    l.getLongitude())
+                    + message;
+        }
+     // put the message length in
+        embedInteger(containerBitmap, message.length(), 24);
+        b = message.getBytes();
         for (int i = 0; i < b.length; i++) {
-            embedByte(containerBitmap, b[i], i * 8 + (24 + 32));
+            embedByte(containerBitmap, b[i], (i * 8) + (24 + 32));
         }
         return containerBitmap;
     }

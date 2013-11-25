@@ -3,24 +3,26 @@ package com.jonathanmackenzie.imagemessage;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Vector;
+import java.util.Locale;
 
-import android.os.Bundle;
-import android.provider.MediaStore;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.hardware.Camera.Size;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.v4.app.NavUtils;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.support.v4.app.NavUtils;
 
 public class DecodeActivity extends Activity {
 
@@ -59,7 +61,34 @@ public class DecodeActivity extends Activity {
         }
         LinearLayout layout = (LinearLayout) findViewById(R.id.decodeOutput);
         if (content != null) {
-            // Detect if the string is either
+            // Detect if this image has embedded location data
+            if(content.startsWith("##")) {
+                int to = content.indexOf("##",2);
+                if(to != -1) {
+                    String[] pieces = content.substring(2, to).split(",");
+                    final double lat = Double.parseDouble(pieces[0]);
+                    final double lng = Double.parseDouble(pieces[1]);
+                    content = content.substring(to+2);
+                    // Put a button that shows where the image was taken
+                    TextView tv = new TextView(this);
+                    tv.setText(String.format("Image taken at %f,%f",lat,lng));
+                    layout.addView(tv);
+                    Button btn = new Button(this);
+                    btn.setText("Show map");
+                    btn.setOnClickListener(new OnClickListener() {
+                        
+                        @Override
+                        public void onClick(View v) {
+                            String uri = String.format(Locale.ENGLISH, "geo:%f,%f", lat, lng);
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                            startActivity(intent);
+                        }
+                    });
+                    layout.addView(btn);
+                }
+            }
+            
+            // Detect if the string is either image or text or drawing
             boolean image = content.startsWith("data:image/");
             if (image) {
                 // Put the hidden image below
@@ -136,7 +165,7 @@ public class DecodeActivity extends Activity {
         if (start.equals("!@#")) {
             int len = extractInteger(bm, 24);
             Log.i("DecodeActivity","Length: "+len);
-            byte[] bytes = new byte[len+7];
+            byte[] bytes = new byte[len];
             for (int i = 0; i < len; i++) {
                 bytes[i] = extractByte(bm, (i*8) + (24+32));
             }

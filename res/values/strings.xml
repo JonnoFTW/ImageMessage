@@ -3,9 +3,8 @@
 
     <string name="app_name">ImageMessage</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="title_activity_decode">DecodeActivity</string>
-    <string name="title_activity_encode">EncodeActivity</string>
-    <string name="title_activity_final">FinalActivity</string>
+    <string name="title_activity_decode">Decode</string>
+    <string name="title_activity_encode">Encode</string>
+    <string name="title_activity_final">Save and Share</string>
 
 </resources>

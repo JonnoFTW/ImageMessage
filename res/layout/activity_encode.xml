@@ -65,6 +65,12 @@
                 android:text="Test Decode"
                 android:textSize="10sp" />
 
+            <CheckBox
+                android:id="@+id/checkBoxCoords"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="Embed GPS Coordinates" />
+
             <ImageView
                 android:id="@+id/imageViewEmbed"
                 android:layout_width="fill_parent"

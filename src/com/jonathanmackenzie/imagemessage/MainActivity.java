@@ -95,6 +95,8 @@ public class MainActivity extends Activity {
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(data == null)
+            return;
         Log.i("MainActivity", "Activity result returned " + requestCode + " "
                 + resultCode+" Data="+data.getDataString());
         if (resultCode == RESULT_OK && data != null) {
