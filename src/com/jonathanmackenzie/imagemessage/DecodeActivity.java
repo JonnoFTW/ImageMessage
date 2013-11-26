@@ -59,7 +59,7 @@ public class DecodeActivity extends Activity {
                 Log.e("DecodeActivity", e.getMessage());
             }
         }
-        LinearLayout layout = (LinearLayout) findViewById(R.id.decodeOutput);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.decodeResult);
         if (content != null) {
             // Detect if this image has embedded location data
             if(content.startsWith("##")) {

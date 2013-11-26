@@ -3,6 +3,7 @@
 
     <string name="app_name">ImageMessage</string>
     <string name="action_settings">Settings</string>
+    <string name="action_encode_next">Send</string>
     <string name="title_activity_decode">Decode</string>
     <string name="title_activity_encode">Encode</string>
     <string name="title_activity_final">Save and Share</string>

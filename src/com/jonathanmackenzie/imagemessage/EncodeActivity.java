@@ -1,11 +1,16 @@
 package com.jonathanmackenzie.imagemessage;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -15,11 +20,13 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.InputFilter;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -83,6 +90,16 @@ public class EncodeActivity extends Activity {
         getMenuInflater().inflate(R.menu.encode, menu);
         return true;
     }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle presses on the action bar items
+        if(item.getItemId() == R.id.action_encode_next) {
+            encodeText(et.getText().toString());
+            saveAndContinue(containerBitmap);
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Could probably be taken from MainActivity since they both do the same
@@ -108,16 +125,74 @@ public class EncodeActivity extends Activity {
         Intent intent = new Intent(this, DecodeActivity.class);
         // Put the containerBitamp into storage and
         // keep the path in the intent
-        EditText et = (EditText) findViewById(R.id.editText);
-        encodeText(et.getText().toString());
+        if(et.getText().toString().length() != 0)
+            encodeText(et.getText().toString());
+        String fname = "toDecodeBitmap.png";
+        saveBitmap(containerBitmap, fname);
+        intent.putExtra("bitmap", fname);
+        startActivity(intent);
+    }
+    private String saveBitmap(Bitmap bm, String filename) {
         try {
-            String filepath = "toDecodeBitmap";
-            FileOutputStream fos = openFileOutput(filepath,
-                    Context.MODE_PRIVATE);
+            String filepath = filename;
+            if(!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                
+                AlertDialog ad = new AlertDialog.Builder(this).create();
+                ad.setTitle("Error");
+                ad.setMessage("External Storage is not mounted. The image was not saved");
+                ad.show();
+                Log.e("EncodeActivity","Could not save image as "+filename);
+                return null;
+            }
+            String fname =Environment.getExternalStorageDirectory()+"/"+  filepath; 
+            FileOutputStream fos = new FileOutputStream(fname);
             containerBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();
-            intent.putExtra("bitmap", filepath);
-            startActivity(intent);
+            return fname;
+        } catch (FileNotFoundException e) {
+            Log.e("EncodeActivity",e.getMessage());
+        } catch (IOException e) {
+            Log.e("EncodeActivity",e.getMessage());
+        }
+        return null;
+    }
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.i("EncodeActivity", "Activity result returned " + requestCode + " "
+                + resultCode);
+        if (resultCode == RESULT_OK && data != null) {
+            // Save and continue
+            Log.i("EncodeActivity",data.getData().toString());
+            Bitmap bm = encodeImage(data.getData());
+            saveAndContinue(bm);
+            
+        }
+    }
+
+    private boolean saveAndContinue(Bitmap bm) {
+        // Save the file as a timestamp,
+        SimpleDateFormat s = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
+        String fname = saveBitmap(bm,s.format(new Date())+".png");
+        
+        if(fname != null) {
+            Intent i = new Intent(Intent.ACTION_SEND);
+            i.setType("image/png");
+            Uri imageuri = Uri.fromFile(new File(fname));
+            Log.i("EncodeActivity","Image uri:"+imageuri.toString());
+            i.putExtra(Intent.EXTRA_STREAM, imageuri);
+            startActivity(Intent.createChooser(i, "Share Image"));
+            return true;
+        } 
+        return false;
+    }
+
+    private Bitmap encodeImage(Uri image) {
+        ImageView ive = (ImageView) findViewById(R.id.imageViewEmbed);
+        ive.setImageURI(image);
+        Log.i("EncodeActivity","Image:"+image.toString());
+
+        Bitmap bitmap= null;
+        try {
+            bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), image);
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -125,44 +200,17 @@ public class EncodeActivity extends Activity {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
-    }
-
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.i("EncodeActivity", "Activity result returned " + requestCode + " "
-                + resultCode);
-        if (resultCode == RESULT_OK && data != null) {
-            encodeImage(data.getData());
-        }
-    }
-
-    private void proceed(Bitmap container) {
-        if (container == null) {
-            Log.i("EncodeActivity", "Container bitmap is null");
-        } else {
-            Intent intent = new Intent(this, FinalActivity.class);
-            intent.putExtra("BitmapImage", container);
-            startActivity(intent);
-        }
-
-    }
-
-    private Bitmap encodeImage(Uri image) {
-        ImageView ive = (ImageView) findViewById(R.id.imageViewEmbed);
-        ive.setImageURI(image);
-
-        Bitmap bitmap = BitmapFactory.decodeFile(image.getPath());
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(); // Compress
-        // the smaller image so that it fits inside the container image
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(); 
+        // Compress the smaller image so that it fits inside the container image
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
         bitmap = Bitmap.createScaledBitmap(bitmap,
                 Math.min(containerBitmap.getWidth() / 4, bitmap.getWidth()),
                 Math.min(containerBitmap.getHeight() / 4, bitmap.getHeight()),
                 false);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
         String imageData = Base64.encodeToString(baos.toByteArray(),
                 Base64.DEFAULT);
-
-        return encodeText(imageData);
+       return encodeText("data:image/png;base64," +imageData);
     }
 
     /**
@@ -250,7 +298,7 @@ public class EncodeActivity extends Activity {
         
         // put the real message in
         CheckBox cb = (CheckBox) findViewById(R.id.checkBoxCoords);
-        if (cb.isChecked()) {
+        if (cb.isChecked() && l != null) {
             message = String.format("##%f,%f##", l.getLatitude(),
                     l.getLongitude())
                     + message;
